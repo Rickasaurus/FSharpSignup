@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 50%;
+        width: 80%;
+        margin: 0 auto;
+      }
+      .controls {
+        margin-top: 10px;
+        border: 1px solid transparent;
+        border-radius: 2px 0 0 2px;
+        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        height: 32px;
+        outline: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      #pac-input {
+        background-color: #fff;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        margin-left: 12px;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;
+        width: 300px;
+      }
+
+      #pac-input:focus {
+        border-color: #4d90fe;
+      }
+
+      .pac-container {
+        font-family: Roboto;
+      }
+
+      #type-selector {
+        color: #fff;
+        background-color: #4d90fe;
+        padding: 5px 11px 0px 11px;
+      }
+
+      #type-selector label {
+        font-family: Roboto;
+        font-size: 13px;
+        font-weight: 300;
+      }
+      #target {
+        width: 345px;
+      }
+
+      .form_container {
+          width: 500px;
+          clear: both;
+      }
+      .form_container input {
+          width: 100%;
+          clear: both;
+      }
+
+      .preformatted {
+        font-family: monospace;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <input id="pac-input" class="controls" type="text" placeholder="Search Box">
+    <label>Search and Click to Select Location</label>
+    <div id="map"></div>
+    <script>
+      var map;
+      var geocoder;
+
+      function setLatLngText(latLng) {
+        // Set Text Boxes
+        var long_input = document.getElementsByName("click_long")[0];
+        long_input.value = latLng.lng();
+        var lat_input = document.getElementsByName("click_lat")[0];
+        lat_input.value = latLng.lat();
+
+        // Reverse Geocode place
+        geocoder.geocode({'location': latLng}, function(results, status) {
+          if (status === google.maps.GeocoderStatus.OK) {
+            if (results[3]) {
+              var placeNameBox = document.getElementsByName("click_placename")[0];
+              placeNameBox.value = results[3].formatted_address;
+            } else {
+              window.alert('No results found');
+            }
+          } else {
+            window.alert('Geocoder failed due to: ' + status);
+          }});
+      }
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 54.525, lng: -105.255},
+          zoom: 3
+        });
+
+        geocoder = new google.maps.Geocoder;
+
+        google.maps.event.addListener(map, 'click', function(event) {
+          var proj = map.getProjection();
+          setLatLngText(event.latLng);
+        });
+     }
+
+     function initAutocomplete() {
+       var input = document.getElementById('pac-input');
+       var searchBox = new google.maps.places.SearchBox(input);
+       map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+       var markers = [];
+       searchBox.addListener('places_changed', function() {
+         var places = searchBox.getPlaces();
+         if (places.length == 0) {
+             return;
+         }
+
+         // Clear out the old markers.
+         markers.forEach(function(marker) {
+           marker.setMap(null);
+         });
+
+         markers = [];
+         var bounds = new google.maps.LatLngBounds();
+         places.forEach(function(place) {
+           var icon = {
+             url: place.icon,
+             size: new google.maps.Size(71, 71),
+             origin: new google.maps.Point(0, 0),
+             anchor: new google.maps.Point(17, 34),
+             scaledSize: new google.maps.Size(25, 25)
+           };
+
+           // Create a marker for each place.
+           var newMarker = new google.maps.Marker({
+             map: map,
+             icon: icon,
+             title: place.name,
+             position: place.geometry.location
+           });
+           newMarker.addListener('click', function (event) {
+             setLatLngText(event.latLng)
+           });
+           markers.push(newMarker);
+
+           if (place.geometry.viewport) {
+             // Only geocodes have viewport.
+             bounds.union(place.geometry.viewport);
+           } else {
+             bounds.extend(place.geometry.location);
+           }
+         });
+         map.fitBounds(bounds);
+       });
+    }
+
+    function initAll() {
+      initMap();
+      initAutocomplete();
+    }
+
+    function makeJsonForSubmission() {
+      var obj = new Object();
+      obj.name = document.getElementsByName("form_name")[0].value;
+      obj.member = document.getElementsByName("form_member")[0].value;
+
+      var twitter = document.getElementsByName("form_twitter")[0].value;
+      if (twitter) {
+        obj.twitter = twitter;
+      }
+
+      obj.location = document.getElementsByName("click_placename")[0].value;
+      obj.lat = document.getElementsByName("click_lat")[0].value;
+      obj.lng = document.getElementsByName("click_long")[0].value;
+
+      obj.travel_zone = document.getElementsByName("form_travelzone")[0].value;
+      obj.travel_distance = document.getElementsByName("form_traveldist")[0].value;
+      obj.bio = document.getElementsByName("form_bio")[0].value;
+      obj.talks = document.getElementsByName("form_talks")[0].value.split(";").filter(function(el) {return el.length != 0});
+      obj.tags = document.getElementsByName("form_tags")[0].value.split(";").filter(function(el) {return el.length != 0});
+
+      var outputDiv = document.getElementsByName("form_output")[0];
+      var jsonText = JSON.stringify(obj, null, 4);
+      outputDiv.innerHTML = jsonText;
+
+      var emailDiv = document.getElementsByName("email_button")[0];
+      emailDiv.innerHTML = "";
+      var emailButton = document.createElement("BUTTON");
+      emailDiv.appendChild(emailButton);
+
+      //<a href="mailto:someone@yoursite.com?cc=someoneelse@theirsite.com, another@thatsite.com, me@mysite.com&bcc=lastperson@theirsite.com
+      //&subject=Big%20News
+      //&body=Body-goes-here">Email Us</a>
+    }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCvCIZqYd66JzCtJ1Crpw44fN_W2i0Vc9E&callback=initAll&libraries=places"
+    async defer></script>
+
+    <div class="form_container"><form>
+      <label for="click_placename">Location</label>                                 <input type="text" name="click_placename"/><br>
+      <label for="click_long">Longitude</label>                                     <input type="text" name="click_long"/><br>
+      <label for="click_lat">Latitude</label>                                       <input type="text" name="click_lat"/><br>
+      <br>
+      <label for="form_name">Full Name</label>                                      <input type="text" name="form_name"/><br>
+      <label for="form_member">Member Handle</label>                                <input type="text" name="form_member"/><br>
+      <label for="form_twitter">Twitter (optional)</label>                          <input type="text" name="form_twitter"/><br>
+      <label for="form_travelzone">Travel Zone</label>                              <input type="text" name="form_travelzone"/><br>
+      <label for="form_traveldist">Trvael Distance</label>                          <input type="text" name="form_traveldist"/><br>
+      <label for="form_bio">Bio</label>                                             <input type="text" name="form_bio"/><br>
+      <label for="form_talks">Prepared Talks/Topics (semicolon delimited)</label>   <input type="text" name="form_talks"/><br>
+      <label for="form_tags">Tags (semicolon delimited)</label>                     <input type="text" name="form_tags"/><br>
+
+      <button type="button" onclick="makeJsonForSubmission()">Generate Json</button>
+    </form></div>
+
+    <div name="form_output" class="preformatted"></div>
+    <div name="email_button"></div>
+  </body>
+</html>
