@@ -191,21 +191,42 @@
       obj.travel_zone = document.getElementsByName("form_travelzone")[0].value;
       obj.travel_distance = document.getElementsByName("form_traveldist")[0].value;
       obj.bio = document.getElementsByName("form_bio")[0].value;
-      obj.talks = document.getElementsByName("form_talks")[0].value.split(";").filter(function(el) {return el.length != 0});
+      obj.talks = document.getElementsByName("form_talks")[0].value.split("\n").filter(function(el) {return el.length != 0});
       obj.tags = document.getElementsByName("form_tags")[0].value.split(";").filter(function(el) {return el.length != 0});
 
-      var outputDiv = document.getElementsByName("form_output")[0];
       var jsonText = JSON.stringify(obj, null, 4);
-      outputDiv.innerHTML = jsonText;
-
-      var emailDiv = document.getElementsByName("email_button")[0];
-      emailDiv.innerHTML = "";
-      var emailButton = document.createElement("BUTTON");
-      emailDiv.appendChild(emailButton);
-
+      return jsonText;
+    }
+    
+    function generateJsonAsText() {
+      var outputDiv = document.getElementsByName("form_output")[0];
+      outputDiv.innerHTML = makeJsonForSubmission();
+    }
+    
+    function generateEmailDiv() {
       //<a href="mailto:someone@yoursite.com?cc=someoneelse@theirsite.com, another@thatsite.com, me@mysite.com&bcc=lastperson@theirsite.com
       //&subject=Big%20News
       //&body=Body-goes-here">Email Us</a>
+            
+      var email = "speakers@fsharp.org";
+      var subject = encodeURIComponent("New F# Speaker Signup!");
+      var body = encodeURIComponent(makeJsonForSubmission());
+      var fullHref = "mailto:" + email + "?subject=" + subject + "&body=" + body;
+      
+      var emailDiv = document.getElementsByName("email_button")[0];
+      emailDiv.innerHTML = "";
+      
+      var a = document.createElement('a');
+      var linkText = document.createTextNode("Click To Send Email");
+      a.appendChild(linkText);
+      a.title = "Click To Send Email";
+      a.href = fullHref;
+      emailDiv.appendChild(a);
+    }
+    
+    function onclick_generateJson() {
+      generateJsonAsText();
+      generateEmailDiv();
     }
 
     </script>
@@ -223,10 +244,10 @@
       <label for="form_travelzone">Travel Zone</label>                              <input type="text" name="form_travelzone"/><br>
       <label for="form_traveldist">Trvael Distance</label>                          <input type="text" name="form_traveldist"/><br>
       <label for="form_bio">Bio</label>                                             <input type="text" name="form_bio"/><br>
-      <label for="form_talks">Prepared Talks/Topics (semicolon delimited)</label>   <input type="text" name="form_talks"/><br>
+      <label for="form_talks">Prepared Talks/Topics (line delimited)</label>   <textarea name="form_talks" cols="80" rows="5" ... ></textarea>
       <label for="form_tags">Tags (semicolon delimited)</label>                     <input type="text" name="form_tags"/><br>
 
-      <button type="button" onclick="makeJsonForSubmission()">Generate Json</button>
+      <button type="button" onclick="onclick_generateJson()">Generate Json</button>
     </form></div>
 
     <div name="form_output" class="preformatted"></div>
